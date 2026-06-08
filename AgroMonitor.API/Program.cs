@@ -28,7 +28,7 @@ public class Program
                 Title = "AgroMonitor API - Cadastro",
                 Version = "v1",
                 Description =
-                    "API REST do dominio de Cadastro (culturas e vagas de plantio) do AgroMonitor. " +
+                    "API REST do dominio de Cadastro (espécies e vagas de plantio) do AgroMonitor. " +
                     "Dona da escrita de TB_CAD_SPECIES e TB_CAD_SLOT no schema Oracle compartilhado."
             });
 
