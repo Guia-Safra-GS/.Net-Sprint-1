@@ -1,0 +1,16 @@
+# Build output
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+*.user
+
+# Rider / Visual Studio
+.idea/
+.vs/
+
+# Credenciais locais (NUNCA versionar)
+appsettings.Development.json
+appsettings.*.Local.json
+*.env
+.env
