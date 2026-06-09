@@ -2,7 +2,7 @@
 
 API .NET do projeto **AgroMonitor**, desenvolvida como parte da Global Solution FIAP 2026/1 (2TDS, Advanced Business Development with .NET). É a metade de **cadastro** de uma solução de monitoramento agrícola inteligente para pequenos e médios produtores — o tema da GS parte da economia espacial (dados climáticos derivados de satélite) aplicada a um problema real no campo: saber quando e quanto irrigar, e prever risco de geada.
 
-Esta API cuida do catálogo do sistema: as **culturas** (espécies de plantas, com suas faixas ideais de umidade e sensibilidade a geada) e os **slots** (as vagas de plantio monitoradas). O projeto tem uma irmã em Java (**GuiaSafra**, Java Advanced) que cuida da operação — leituras dos sensores ESP32, previsão climática, regas e alertas. As duas APIs compartilham o mesmo banco Oracle da FIAP via um schema único que serve como contrato entre elas: cada uma é dona da escrita das suas próprias tabelas e apenas lê as do outro contexto quando precisa.
+Esta API cuida do catálogo do sistema: as **especies** (espécies de plantas, com suas faixas ideais de umidade e sensibilidade a geada) e os **slots** (as vagas de plantio monitoradas). O projeto tem uma irmã em Java (**GuiaSafra**, Java Advanced) que cuida da operação — leituras dos sensores ESP32, previsão climática, regas e alertas. As duas APIs compartilham o mesmo banco Oracle da FIAP via um schema único que serve como contrato entre elas: cada uma é dona da escrita das suas próprias tabelas e apenas lê as do outro contexto quando precisa.
 
 ## Links da entrega
 
@@ -13,11 +13,11 @@ Esta API cuida do catálogo do sistema: as **culturas** (espécies de plantas, c
 
 ## Sobre a divisão por domínio
 
-A escolha foi separar as duas APIs por **bounded context** (contexto delimitado), e não por questões técnicas como performance. A ideia é simples: uma API cuida do *cadastro* (o que existe na fazenda — culturas e vagas), a outra cuida da *operação* (o que acontece com elas — medições, regas, alertas). Essa fronteira fica explícita na divisão das tabelas: cada lado escreve só no que é seu.
+A escolha foi separar as duas APIs por **bounded context** (contexto delimitado), e não por questões técnicas como performance. A ideia é simples: uma API cuida do *cadastro* (o que existe na fazenda — especies e vagas), a outra cuida da *operação* (o que acontece com elas — medições, regas, alertas). Essa fronteira fica explícita na divisão das tabelas: cada lado escreve só no que é seu.
 
 Esta API (.NET) é dona de escrita das seguintes tabelas:
 
-- `TB_CAD_SPECIES` — catálogo de culturas; guarda a **regra de negócio agronômica** (faixa de umidade tolerada, volume de rega, temperatura de risco de geada)
+- `TB_CAD_SPECIES` — catálogo de especies; guarda a **regra de negócio agronômica** (faixa de umidade tolerada, volume de rega, temperatura de risco de geada)
 - `TB_CAD_SLOT` — cada vaga de plantio monitorada; relação 1:N com espécie
 
 A API Java escreve em `TB_CAD_USER`, `TB_MON_CLIMATE_FORECAST`, `TB_MON_READING`, `TB_MON_WATERING_EVENT` e `TB_MON_ALERT`, e **lê** a `TB_CAD_SLOT` (somente leitura) para validar a FK antes de registrar uma leitura ou um alerta. A integridade entre os dois domínios é garantida pelas FKs do próprio Oracle.
@@ -91,9 +91,9 @@ Decisões que valem destacar:
 
 **Remoção lógica do slot.** Deletar um slot **não apaga a linha** — o `SlotService.Delete` marca o `Status` como `INACTIVE` e salva. Isso preserva o histórico que o domínio Java referencia por FK (leituras, regas e alertas continuam apontando para o slot). Apagar de verdade quebraria esse histórico.
 
-**Exclusão de espécie é restrita.** Já a espécie usa FK com `DeleteBehavior.Restrict`: tentar deletar uma cultura que ainda tem slots vinculados devolve **409 Conflict**, porque apagar a regra agronômica deixaria os slots órfãos. É a resposta direta para a pergunta "o que acontece com os dados relacionados ao deletar um registro?": slot → desativa; espécie com filhos → bloqueia.
+**Exclusão de espécie é restrita.** Já a espécie usa FK com `DeleteBehavior.Restrict`: tentar deletar uma especies que ainda tem slots vinculados devolve **409 Conflict**, porque apagar a regra agronômica deixaria os slots órfãos. É a resposta direta para a pergunta "o que acontece com os dados relacionados ao deletar um registro?": slot → desativa; espécie com filhos → bloqueia.
 
-**Valor derivado, não confiado no cliente.** As regras de negócio das culturas (faixa de umidade, volume de rega) são validadas no domínio: umidade entre 0 e 100, mínima menor que a máxima, volume maior que zero. Qualquer violação vira `DomainException` → 400, antes de tocar no banco.
+**Valor derivado, não confiado no cliente.** As regras de negócio das especies (faixa de umidade, volume de rega) são validadas no domínio: umidade entre 0 e 100, mínima menor que a máxima, volume maior que zero. Qualquer violação vira `DomainException` → 400, antes de tocar no banco.
 
 **Validação em três camadas.** Uma entrada inválida é barrada o mais cedo possível:
 1. **DataAnnotations + ModelState** no controller — formato (campo obrigatório, tamanho, faixa). Falhou → **400**.
@@ -104,17 +104,17 @@ Decisões que valem destacar:
 
 - `DomainException` / `ArgumentException` → **400**
 - `KeyNotFoundException` → **404**
-- `InvalidOperationException` (ex.: nome de cultura duplicado) → **409**
+- `InvalidOperationException` (ex.: nome de especies duplicado) → **409**
 - `DbUpdateException` (violação de constraint do banco, como a FK de exclusão restrita) → **409**
 - `OracleException` (banco indisponível) → **502**
 
-**Repositório genérico + específico.** `IRepository<T>` cobre o CRUD comum (síncrono, seguindo o padrão da disciplina). Onde uma entidade precisa de uma consulta própria, há um contrato específico — `ISpeciesRepository.ExistsByCommonName`, usado para garantir que não existam duas culturas com o mesmo nome.
+**Repositório genérico + específico.** `IRepository<T>` cobre o CRUD comum (síncrono, seguindo o padrão da disciplina). Onde uma entidade precisa de uma consulta própria, há um contrato específico — `ISpeciesRepository.ExistsByCommonName`, usado para garantir que não existam duas especies com o mesmo nome.
 
 ## Endpoints principais
 
 Documentação interativa completa no Swagger UI em `http://localhost:5128/`. Abaixo os fluxos mais relevantes. Os caminhos seguem a convenção `api/[controller]`.
 
-### Cadastrar uma cultura (espécie)
+### Cadastrar uma especie
 
 ```http
 POST /api/Species
@@ -130,7 +130,7 @@ Content-Type: application/json
 }
 ```
 
-O nome comum é único — se já existir, retorna **409**. Faixas de umidade fora de 0–100, mínima ≥ máxima ou volume ≤ 0 retornam **400**. Resposta **201** com a cultura criada:
+O nome comum é único — se já existir, retorna **409**. Faixas de umidade fora de 0–100, mínima ≥ máxima ou volume ≤ 0 retornam **400**. Resposta **201** com a especie criada:
 
 ```json
 {
@@ -145,16 +145,16 @@ O nome comum é único — se já existir, retorna **409**. Faixas de umidade fo
 }
 ```
 
-### Listar e buscar culturas
+### Listar e buscar especies
 
 ```http
 GET /api/Species
 GET /api/Species/1
 ```
 
-`GET` de listagem devolve todas as culturas ordenadas por id; `GET /{id}` devolve uma só (ou **404** se não existir).
+`GET` de listagem devolve todas as especies ordenadas por id; `GET /{id}` devolve uma só (ou **404** se não existir).
 
-### Atualizar e remover uma cultura
+### Atualizar e remover uma especie
 
 ```http
 PUT /api/Species/1        # atualiza, revalidando as regras de domínio
@@ -174,7 +174,7 @@ Content-Type: application/json
 }
 ```
 
-O `speciesId` é a FK para a cultura e é **validado antes** de inserir — se a espécie não existir, retorna **404** ("Espécie 999 não encontrada"). O slot nasce com `status = ACTIVE`. Resposta **201**:
+O `speciesId` é a FK para a especie e é **validado antes** de inserir — se a espécie não existir, retorna **404** ("Espécie 999 não encontrada"). O slot nasce com `status = ACTIVE`. Resposta **201**:
 
 ```json
 {
@@ -202,13 +202,13 @@ Com a aplicação rodando, o caminho mais rápido para um teste end-to-end é o 
 
 Roteiro sugerido:
 
-1. `GET /api/Species` — confirma as culturas que vieram do seed (`gs_agromonitor.sql`)
-2. `POST /api/Species` — cria uma cultura nova (201)
+1. `GET /api/Species` — confirma as especies que vieram do seed (`gs_agromonitor.sql`)
+2. `POST /api/Species` — cria uma especie nova (201)
 3. `POST /api/Species` com o mesmo nome — confirma o **409** de duplicidade
 4. `POST /api/Slot` com `speciesId` válido — cria a vaga (201)
 5. `POST /api/Slot` com `speciesId` inexistente — confirma o **404**
 6. `DELETE /api/Slot/{id}` e depois `GET` — confirma a **remoção lógica** (status `INACTIVE`)
-7. `DELETE /api/Species/{id}` de uma cultura com slots — confirma o **409** (FK Restrict)
+7. `DELETE /api/Species/{id}` de uma especie com slots — confirma o **409** (FK Restrict)
 
 Se os erros vierem como JSON limpo no formato ProblemDetails (`{ "title": "...", "status": 404, "detail": "..." }`), o tratamento global está funcionando. Se aparecer stack trace, algo escapou do `GlobalExceptionHandler`.
 
