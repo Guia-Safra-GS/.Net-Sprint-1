@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
+using Oracle.EntityFrameworkCore.Infrastructure;
 
 namespace AgroMonitor.Infrastructure.Persistence;
 
@@ -18,7 +19,8 @@ public sealed class AgroMonitorContextFactory : IDesignTimeDbContextFactory<Agro
             ?? "User Id=REPLACE_USER;Password=REPLACE_PASSWORD;Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=oracle.fiap.com.br)(PORT=1521))(CONNECT_DATA=(SID=ORCL)))";
 
         var options = new DbContextOptionsBuilder<AgroMonitorContext>()
-            .UseOracle(connectionString)
+            .UseOracle(connectionString,
+                oracle => oracle.UseOracleSQLCompatibility(OracleSQLCompatibility.DatabaseVersion19))
             .Options;
 
         return new AgroMonitorContext(options);

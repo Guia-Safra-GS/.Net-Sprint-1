@@ -4,6 +4,7 @@ using AgroMonitor.Application.Services.Interfaces;
 using AgroMonitor.Infrastructure.Persistence;
 using AgroMonitor.Infrastructure.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
+using Oracle.EntityFrameworkCore.Infrastructure;
 
 namespace AgroMonitor.API.Extensions;
 
@@ -30,8 +31,12 @@ public static class AgroMonitorServiceCollectionExtensions
                 "Configure em appsettings.json ou na variável de ambiente " +
                 $"ConnectionStrings__{connectionStringName}.");
 
+        // Informa ao provider que o banco é Oracle 19c — sem isso ele gera
+        // literais booleanos TRUE/FALSE (só existem no Oracle 23), causando
+        // ORA-00904 em consultas com .Any()/EXISTS.
         services.AddDbContext<AgroMonitorContext>(options =>
-            options.UseOracle(connectionString));
+            options.UseOracle(connectionString,
+                oracle => oracle.UseOracleSQLCompatibility(OracleSQLCompatibility.DatabaseVersion19)));
 
         return services;
     }

@@ -1,0 +1,6 @@
+@AgroMonitor.API_HostAddress = http://localhost:5128
+
+GET {{AgroMonitor.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
