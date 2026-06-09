@@ -6,9 +6,9 @@ Esta API cuida do catálogo do sistema: as **culturas** (espécies de plantas, c
 
 ## Links da entrega
 
-- **Repositório:** `[inserir link do GitHub]`
-- **Vídeo demonstração (até 8 min):** `[inserir link]`
-- **Vídeo pitch (até 3 min):** `[inserir link]`
+- **Repositório:** `https://github.com/Guia-Safra-GS/.Net-Sprint-1`
+- **Vídeo demonstração (até 8 min):** `https://youtu.be/X3w-u3gO9AU`
+- **Vídeo pitch (até 3 min):** `https://youtu.be/ZNpZ35j8NtU`
 - **Documentação da API (Swagger):** roda localmente em `http://localhost:5128/` (ver seção "Como executar")
 
 ## Sobre a divisão por domínio
